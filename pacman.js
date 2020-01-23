@@ -1,17 +1,20 @@
 
 
-var NONE        = 4,
-    UP          = 3,
-    LEFT        = 2,
-    DOWN        = 1,
-    RIGHT       = 11,
-    WAITING     = 5,
-    PAUSE       = 6,
-    PLAYING     = 7,
-    COUNTDOWN   = 8,
+var NONE = 4,
+    UP = 3,
+    LEFT = 2,
+    DOWN = 1,
+    RIGHT = 11,
+    WAITING = 5,
+    PAUSE = 6,
+    PLAYING = 7,
+    COUNTDOWN = 8,
     EATEN_PAUSE = 9,
-    DYING       = 10,
-    Pacman      = {};
+    DYING = 10,
+    Pacman = {},
+    ghostSpecs = ["#00FFDE", "#FF0000", "#FFB8DE", "#FFB847", "#cc00ff"], //Amount & colour of ghosts for level 1
+    ghostSpecs1 = ["#00FF00"], //For adding more ghosts
+    levelCounter = 1; //For selecting map for each level
 
 Pacman.FPS = 30;
 
@@ -61,18 +64,37 @@ Pacman.Ghost = function (game, map, colour) {
         return eatable === null && eaten !== null;
     };
 	
-	function isOnCrack() {
-		return 
-	};
+
     
     function getRandomDirection() {
         var moves = (direction === LEFT || direction === RIGHT) 
             ? [UP, DOWN] : [LEFT, RIGHT];
         return moves[Math.floor(Math.random() * 2)];
     };
-	
-	
-    
+
+    //Get orientation of target
+    function getOrientationX(target, ghost) {
+        var orientationX = target.x - ghost.x;
+        return orientationX;
+    };
+
+    function getOrientationY(target, ghost) {
+        var orientationY = target.y - ghost.y;
+        return orientationY;
+    }
+
+    //Test: move to target (Experimental)
+    function moveToTarget(orientation_X, orientation_Y) {
+        var move;
+        move.x = orientation_X;
+        move.y = orientation_Y;
+        var moves = (direction === LEFT || direction === RIGHT)
+            ? [UP, DOWN] : [LEFT, RIGHT];
+
+        return moves[move];
+
+    };
+
     function reset() {
         eaten = null;
         eatable = null;
@@ -309,7 +331,7 @@ Pacman.User = function (game, map) {
         newLevel();
     }
     
-    function newLevel() {
+    function newLevel() {       
         resetPosition();
         eaten = 0;
     };
@@ -322,6 +344,8 @@ Pacman.User = function (game, map) {
     
     function reset() {
         initUser();
+        levelCounter = 1; //reset to first map
+        ghostSpecs = ["#00FFDE", "#FF0000", "#FFB8DE", "#FFB847", "#cc00ff"]; //reset amount of ghosts
         resetPosition();
     };        
     
@@ -430,8 +454,8 @@ Pacman.User = function (game, map) {
             addScore((block === Pacman.COOKIE) ? 10 : 50);
             eaten += 1;
             
-			//Player must eat all cookies and pallets to finish level
-            if (eaten === 182) {
+			//Player must eat a certain number of cookies and pallets to finish level
+            if (eaten === 200) {
                 game.completedLevel();
             }
             
@@ -582,7 +606,10 @@ Pacman.Map = function (size) {
     }
     
     function reset() {       
-        map    = Pacman.MAP.clone();
+        map = Pacman.MAP1.clone(); //use first map as default
+        if (levelCounter == 2) { map = Pacman.MAP2.clone(); }; //uses second map for level 2
+        if (levelCounter == 3) { map = Pacman.MAP3.clone(); }; //uses third map for level 3
+        if (levelCounter == 4) { levelCounter = 1; }; // resets back to first map for level 4, cycle repeats for future levels
         height = map.length;
         width  = map[0].length;        
     };
@@ -770,7 +797,6 @@ var PACMAN = (function () {
     var state        = WAITING,
         audio        = null,
         ghosts       = [],
-        ghostSpecs   = ["#00FFDE", "#FF0000", "#FFB8DE", "#FFB847", "#cc00ff"],
         eatenCount   = 0,
         level        = 0,
         tick         = 0,
@@ -783,6 +809,8 @@ var PACMAN = (function () {
         map          = null,
         user         = null,
         stored       = null;
+
+    
 
     function getTick() { 
         return tick;
@@ -868,10 +896,12 @@ var PACMAN = (function () {
                           Math.pow(ghost.y - user.y, 2))) < 10;
     };
 	
-	//Detects when player is close
+	//Detects when player is close (Experimental)
 	function closeToPlayer(user, ghost){
 		return (Math.sqrt(Math.pow(ghost.x - user.x, 2) + 
-                          Math.pow(ghost.y - user.y, 2))) < 40;
+            Math.pow(ghost.y - user.y, 2))) < 90 &&
+            (Math.sqrt(Math.pow(ghost.x - user.x, 2) +
+                Math.pow(ghost.y - user.y, 2))) > 20;
 	};
 
     function drawFooter() {
@@ -927,19 +957,39 @@ var PACMAN = (function () {
             redrawBlock(ghostPos[i].old);
         }
         redrawBlock(u.old);
-        
+
+
+
         for (i = 0, len = ghosts.length; i < len; i += 1) {
             ghosts[i].draw(board);
         }                     
+
         user.draw(board);
         
         userPos = u["new"];
         
         for (i = 0, len = ghosts.length; i < len; i += 1) {
-			//When ghosts are close to player...
-		//*	if(closeToPlayer(userPos, ghostPos[i]["new"])){
-				//ghosts[i].isHidden();
-		//	}*//
+
+            //Experimental code below. Still in progress for now.
+
+            //When ghosts are close to player...
+			/*if(closeToPlayer(userPos, ghostPos[i]["new"])){
+                //Define player's location as a target
+                /*var target;
+                target.x = userPos.x - ghostPos[i]["new"].x;
+                target.y = userPos.y - ghostPos[i]["new"].y;
+                //Make them move towards target
+                //ghosts[i].moveToTarget(userPos, ghostPos[i]["new"]);
+        
+                ghosts[i].nextTile(userPos, due);
+                
+            }*/            
+            //Define player's location as a target
+            /*var target;
+            target.x = getOrientationX(userPos, ghostPos[i]["new"]);
+            target.y = getOrientationY(userPos, ghostPos[i]["new"]);*/
+            
+
 			//When ghosts collide with player...
             if (collided(userPos, ghostPos[i]["new"])) {
                 if (ghosts[i].isVunerable()) { 
@@ -1021,11 +1071,18 @@ var PACMAN = (function () {
     
     function completedLevel() {
         setState(WAITING);
-        level += 1;
+        level += 1; //Increase level by one
+        levelCounter += 1;
+        for (i = 0, len = ghostSpecs1.length; i < len; i += 1) {
+            ghost = new Pacman.Ghost({ "getTick": getTick }, map, ghostSpecs1[i]);
+            ghosts.push(ghost);
+        }
+
         map.reset();
         user.newLevel();
         startLevel();
     };
+
 
     function keyPress(e) { 
         if (state !== WAITING && state !== PAUSE) { 
@@ -1054,8 +1111,10 @@ var PACMAN = (function () {
             "eatenPallets"      : eatenPallets 
         }, map);
 
+        
+
         for (i = 0, len = ghostSpecs.length; i < len; i += 1) {
-            ghost = new Pacman.Ghost({"getTick":getTick}, map, ghostSpecs[i]);
+            ghost = new Pacman.Ghost({ "getTick": getTick }, map, ghostSpecs[i]);
             ghosts.push(ghost);
         }
         
@@ -1130,58 +1189,81 @@ Pacman.EMPTY   = 2;
 Pacman.BLOCK   = 3;
 Pacman.PALLET    = 4;
 
-/*
-Pacman.MAP = [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-	[0, 4, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 4, 0],
-	[0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0],
-	[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-	[0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0],
-	[0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0],
-	[0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
-	[2, 2, 2, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 2, 2, 2],
-	[0, 0, 0, 0, 1, 0, 1, 0, 0, 3, 0, 0, 1, 0, 1, 0, 0, 0, 0],
-	[2, 2, 2, 2, 1, 1, 1, 0, 3, 3, 3, 0, 1, 1, 1, 2, 2, 2, 2],
-	[0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
-	[2, 2, 2, 0, 1, 0, 1, 1, 1, 2, 1, 1, 1, 0, 1, 0, 2, 2, 2],
-	[0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
-	[0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-	[0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0],
-	[0, 4, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 4, 0],
-	[0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0],
-	[0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0],
-	[0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
-	[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-];
-
-*/
-
-Pacman.MAP = [
+Pacman.MAP1 = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-	[0, 1, 4, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 4, 1, 0],
-	[0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0],
-	[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-	[0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0],
-	[0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
-	[0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-	[2, 2, 2, 2, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 2, 2, 2, 2],
-	[0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-	[2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2],
-	[0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-	[2, 2, 2, 2, 0, 1, 0, 1, 1, 1, 2, 1, 1, 1, 0, 1, 0, 2, 2, 2, 2],
-	[0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-	[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-	[0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0],
-	[0, 1, 4, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 4, 1, 0],
-	[0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-	[0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
-	[0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-	[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    [0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 0, 4, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 4, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 2, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [2, 2, 2, 2, 0, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 0, 2, 2, 2, 2],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 4, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [2, 2, 2, 2, 0, 1, 1, 1, 1, 0, 2, 0, 1, 1, 1, 1, 0, 2, 2, 2, 2],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 2, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 4, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 4, 1, 0],
+    [0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ];
+
+Pacman.MAP2 = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 4, 1, 0, 0, 1, 1, 1, 1, 1, 4, 1, 1, 1, 1, 1, 0, 0, 1, 4, 0],
+    [0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 1, 0, 1, 0, 2, 2, 2, 0, 1, 0, 1, 1, 1, 0, 0, 0],
+    [2, 2, 2, 2, 2, 1, 1, 1, 0, 2, 2, 2, 0, 1, 1, 1, 2, 2, 2, 2, 2],
+    [0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 2, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0],
+    [0, 4, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 4, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+];
+
+Pacman.MAP3 = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 4, 0, 0, 1, 1, 0, 1, 1, 0, 0, 4, 1, 1, 1, 1, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0],
+    [0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0],
+    [0, 2, 1, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 4, 1, 2, 0],
+    [0, 2, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 2, 0],
+    [2, 2, 2, 2, 2, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 2, 2, 2, 2, 2],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [2, 2, 2, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2],
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0],
+    [0, 1, 4, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 4, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+];
+
 
 Pacman.WALLS = [
     
