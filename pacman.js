@@ -301,10 +301,11 @@ Pacman.User = function (game, map) {
         score     = 5,
         keyMap    = {};
     
-    keyMap[KEY.A]  = LEFT;
-    keyMap[KEY.W]    = UP;
-    keyMap[KEY.D] = RIGHT;
-    keyMap[KEY.S]  = DOWN;
+    keyMap[KEY.ARROW_LEFT] = LEFT;
+    keyMap[KEY.ARROW_UP]  = UP;
+    keyMap[KEY.ARROW_RIGHT] = RIGHT;
+    keyMap[KEY.ARROW_DOWN] = DOWN;
+
 
     function addScore(nScore) { 
         score += nScore;
@@ -455,7 +456,7 @@ Pacman.User = function (game, map) {
             eaten += 1;
             
 			//Player must eat a certain number of cookies and pallets to finish level
-            if (eaten === 200) {
+            if (eaten === 50) {
                 game.completedLevel();
             }
             
