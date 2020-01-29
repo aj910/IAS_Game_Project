@@ -1075,8 +1075,7 @@ var PACMAN = (function () {
         timerStart = tick;
         eatenCount = 0;
         for (i = 0; i < ghosts.length; i += 1) {
-            //ghosts[i].reset();
-            setState(EATEN_PAUSE);
+            ghosts[i].reset();
         }
     };
 
