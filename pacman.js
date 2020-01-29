@@ -13,10 +13,15 @@ var NONE = 4,
     Pacman = {},
     ghostSpecs = ["#00FFDE", "#FF0000", "#FFB8DE", "#FFB847", "#cc00ff"], //Amount & colour of ghosts for level 1
     ghostSpecs1 = ["#00FF00"], //For adding more ghosts
-    playerPosX = 0;
+    playerPosX = 0,
     playerPosY = 0;
     levelCounter = 1; //For selecting map for each level
 
+
+//Takes the user to the credits page
+function creditsPage() {
+    window.location.href = "credits.html";
+};
 
 Pacman.FPS = 30;
 
@@ -28,9 +33,10 @@ Pacman.Ghost = function (game, map, colour) {
         eaten = null,
         due = null;
 
+
     function getNewLocation(dir, current) {
 
-        var speed = isVunerable() ? 1 : isHidden() ? 4 : 2,
+        var speed = isVunerable() ? 1 : isHidden() ? 4 : 2, 
             xSpeed = (dir === LEFT && -speed || dir === RIGHT && speed || 0),
             ySpeed = (dir === DOWN && speed || dir === UP && -speed || 0);
 
@@ -427,7 +433,7 @@ Pacman.User = function (game, map) {
         block = map.block(nextWhole);
 
         if ((isMidTile(position.y) || isMidTile(position.x)) &&
-            block === Pacman.COOKIE || block === Pacman.PALLET) {
+            block === Pacman.COOKIE || block === Pacman.PALLET || block === Pacman.STAR) {
 
             map.setBlock(nextWhole, Pacman.EMPTY);
             addScore((block === Pacman.COOKIE) ? 10 : 50);
@@ -440,6 +446,10 @@ Pacman.User = function (game, map) {
 
             if (block === Pacman.PALLET) {
                 game.eatenPallets();
+            }
+
+            if (block === Pacman.STAR) {
+                game.eatenStar();
             }
         }
 
@@ -549,7 +559,8 @@ Pacman.Map = function (size) {
         var piece = map[pos.y][pos.x];
         return piece === Pacman.EMPTY ||
             piece === Pacman.COOKIE ||
-            piece === Pacman.PALLET;
+            piece === Pacman.PALLET ||
+            piece === Pacman.STAR;
     }
 
     function drawWall(board) {
@@ -588,7 +599,8 @@ Pacman.Map = function (size) {
         map = Pacman.MAP1.clone(); //use first map as default
         if (levelCounter == 2) { map = Pacman.MAP2.clone(); }; //uses second map for level 2
         if (levelCounter == 3) { map = Pacman.MAP3.clone(); }; //uses third map for level 3
-        if (levelCounter == 4) { levelCounter = 1; }; // resets back to first map for level 4, cycle repeats for future levels
+        /*if (levelCounter == 4) { levelCounter = 1; }; // resets back to first map for level 4, cycle repeats for future levels*/
+        if (levelCounter == 4) { creditsPage(); };
         height = map.length;
         width = map[0].length;
     };
@@ -616,12 +628,28 @@ Pacman.Map = function (size) {
                     board.fillRect((j * blockSize), (i * blockSize),
                         blockSize, blockSize);
 
-                    board.fillStyle = "#FFF";
+                    board.fillStyle = "#ffcc00";
                     board.arc((j * blockSize) + blockSize / 2,
                         (i * blockSize) + blockSize / 2,
                         Math.abs(5 - (palletSize / 3)),
                         0,
                         Math.PI * 2, false);
+                    board.fill();
+                    board.closePath();
+                }
+                if (map[i][j] === Pacman.STAR) {
+                    board.beginPath();
+
+                    board.fillStyle = "#000";
+                    board.fillRect((j * blockSize), (i * blockSize),
+                        blockSize, blockSize);
+
+                    board.fillStyle = "#00ffff";
+                    board.arc((j * blockSize) + blockSize / 2,
+                        (i * blockSize) + blockSize / 2,
+                        Math.abs(5 - (palletSize / 2)),
+                        0,
+                        Math.PI * 2, true);
                     board.fill();
                     board.closePath();
                 }
@@ -655,7 +683,7 @@ Pacman.Map = function (size) {
 
         board.beginPath();
 
-        if (layout === Pacman.EMPTY || layout === Pacman.BLOCK ||
+        if (layout === Pacman.EMPTY || layout === Pacman.STAR ||
             layout === Pacman.COOKIE) {
 
             board.fillStyle = "#000";
@@ -878,9 +906,9 @@ var PACMAN = (function () {
     //Detects when player is close (Experimental)
     function closeToPlayer(user, ghost) {
         return (Math.sqrt(Math.pow(ghost.x - user.x, 2) +
-            Math.pow(ghost.y - user.y, 2))) < 90
-            /*&& (Math.sqrt(Math.pow(ghost.x - user.x, 2) +
-                Math.pow(ghost.y - user.y, 2))) > 20;*/
+            Math.pow(ghost.y - user.y, 2))) < 50
+            && (Math.sqrt(Math.pow(ghost.x - user.x, 2) +
+                Math.pow(ghost.y - user.y, 2))) > 11;
     };
 
     function drawFooter() {
@@ -957,7 +985,7 @@ var PACMAN = (function () {
             //Experimental code below. Still in progress for now.
 
             //When ghosts are close to player...
-			if(closeToPlayer(userPos, ghostPos[i]["new"])){
+            if (closeToPlayer(userPos, ghostPos[i]["new"])) {
                 
             }
 
@@ -1041,6 +1069,17 @@ var PACMAN = (function () {
         }
     };
 
+    //Eat Star
+    function eatenStar() {
+        audio.play("eatpill");
+        timerStart = tick;
+        eatenCount = 0;
+        for (i = 0; i < ghosts.length; i += 1) {
+            //ghosts[i].reset();
+            setState(EATEN_PAUSE);
+        }
+    };
+
     function completedLevel() {
         setState(WAITING);
         level += 1; //Increase level by one
@@ -1080,7 +1119,8 @@ var PACMAN = (function () {
         map = new Pacman.Map(blockSize);
         user = new Pacman.User({
             "completedLevel": completedLevel,
-            "eatenPallets": eatenPallets
+            "eatenPallets": eatenPallets,
+            "eatenStar": eatenStar
         }, map);
 
 
@@ -1158,12 +1198,12 @@ var KEY = { 'BACKSPACE': 8, 'TAB': 9, 'NUM_PAD_CLEAR': 12, 'ENTER': 13, 'SHIFT':
 Pacman.WALL = 0;
 Pacman.COOKIE = 1;
 Pacman.EMPTY = 2;
-Pacman.BLOCK = 3;
+Pacman.STAR = 3;
 Pacman.PALLET = 4;
 
 Pacman.MAP1 = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 3, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 0, 4, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 4, 0, 1, 1, 0],
     [0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -1181,14 +1221,14 @@ Pacman.MAP1 = [
     [0, 1, 4, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 4, 1, 0],
     [0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0],
-    [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
-    [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 3, 0, 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ];
 
 Pacman.MAP2 = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 4, 1, 0, 0, 1, 1, 1, 1, 1, 4, 1, 1, 1, 1, 1, 0, 0, 1, 4, 0],
+    [0, 4, 1, 0, 0, 3, 1, 1, 1, 1, 4, 1, 1, 1, 1, 3, 0, 0, 1, 4, 0],
     [0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0],
     [0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0],
     [0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0],
@@ -1199,7 +1239,7 @@ Pacman.MAP2 = [
     [0, 0, 0, 1, 1, 1, 0, 1, 0, 2, 2, 2, 0, 1, 0, 1, 1, 1, 0, 0, 0],
     [2, 2, 2, 2, 2, 1, 1, 1, 0, 2, 2, 2, 0, 1, 1, 1, 2, 2, 2, 2, 2],
     [0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0],
-    [0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 2, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 3, 1, 1, 1, 1, 0, 1, 1, 1, 3, 1, 1, 1, 0, 1, 1, 1, 1, 3, 0],
     [0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0],
     [0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0],
@@ -1213,15 +1253,15 @@ Pacman.MAP2 = [
 
 Pacman.MAP3 = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 3, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 4, 0, 0, 1, 1, 0, 1, 1, 0, 0, 4, 1, 1, 1, 1, 0],
     [0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 2, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0],
     [0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0],
     [0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0],
-    [0, 2, 1, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 4, 1, 2, 0],
-    [0, 2, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 2, 0],
+    [0, 1, 1, 4, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 4, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0],
     [2, 2, 2, 2, 2, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 2, 2, 2, 2, 2],
     [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
     [2, 2, 2, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2],
@@ -1230,7 +1270,7 @@ Pacman.MAP3 = [
     [0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0],
     [0, 1, 4, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 4, 1, 0],
     [0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0],
-    [0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 1, 3, 0, 1, 0, 3, 1, 0, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
