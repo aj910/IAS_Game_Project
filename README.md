@@ -1,2 +1,3 @@
 # IAS_Game_Project
-Developing Pacman Game as a University Project
+
+Pacman Game development as a University Project for IAS (CP5609)
